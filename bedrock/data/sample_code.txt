@@ -1,0 +1,79 @@
+#include <iostream>
+#include <string>
+#include <vector>
+
+class Vehicle {
+protected:
+    std::string registrationNumber;
+    int milesTraveled;
+    int lastMaintenanceMile;
+
+public:
+    Vehicle(std::string regNum) : registrationNumber(regNum), milesTraveled(0), lastMaintenanceMile(0) {}
+
+    virtual void addMiles(int miles) {
+        milesTraveled += miles;
+    }
+
+    virtual void performMaintenance() {
+        lastMaintenanceMile = milesTraveled;
+        std::cout << "Maintenance performed for vehicle: " << registrationNumber << std::endl;
+    }
+
+    virtual void checkMaintenanceDue() {
+        if ((milesTraveled - lastMaintenanceMile) > 10000) {
+            std::cout << "Vehicle: " << registrationNumber << " needs maintenance!" << std::endl;
+        } else {
+            std::cout << "No maintenance required for vehicle: " << registrationNumber << std::endl;
+        }
+    }
+
+    virtual void displayDetails() = 0;
+
+    ~Vehicle() {
+        std::cout << "Destructor for Vehicle" << std::endl;
+    }
+};
+
+class Truck : public Vehicle {
+    int capacityInTons;
+
+public:
+    Truck(std::string regNum, int capacity) : Vehicle(regNum), capacityInTons(capacity) {}
+
+    void displayDetails() override {
+        std::cout << "Truck with Registration Number: " << registrationNumber << ", Capacity: " << capacityInTons << " tons." << std::endl;
+    }
+};
+
+class Car : public Vehicle {
+    std::string model;
+
+public:
+    Car(std::string regNum, std::string carModel) : Vehicle(regNum), model(carModel) {}
+
+    void displayDetails() override {
+        std::cout << "Car with Registration Number: " << registrationNumber << ", Model: " << model << "." << std::endl;
+    }
+};
+
+int main() {
+    std::vector<Vehicle*> fleet;
+
+    fleet.push_back(new Truck("XYZ1234", 20));
+    fleet.push_back(new Car("ABC9876", "Sedan"));
+
+    for (auto vehicle : fleet) {
+        vehicle->displayDetails();
+        vehicle->addMiles(10500);
+        vehicle->checkMaintenanceDue();
+        vehicle->performMaintenance();
+        vehicle->checkMaintenanceDue();
+    }
+
+    for (auto vehicle : fleet) {
+        delete vehicle; 
+    }
+
+    return 0;
+}

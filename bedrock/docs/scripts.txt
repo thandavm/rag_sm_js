@@ -1,0 +1,27 @@
+1.  Cohere
+----------
+
+Given this product description, generate five cool ideas for a branded name of the product shown below. Only include the name.
+
+Product: Sunglasses. 
+Keywords: polarized, designer, comfortable, UV protection, aviators.
+
+2. AI 21 Ultra
+--------------
+
+Given this product description, generate five cool ideas for a branded name of the product shown below. Only include the name.
+
+Product: Sunglasses. 
+Keywords: polarized, designer, comfortable, UV protection, aviators.
+
+3.  Claude Instant
+-------------------
+
+Tell me why it is important to inflate my car tires
+
+Write that in a paragraph instead of bullet points
+
+4.  Claude Instant
+-------------------
+
+painting of the pacific northwest in fall
