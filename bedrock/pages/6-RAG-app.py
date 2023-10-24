@@ -1,21 +1,45 @@
 import streamlit as st
-import uuid
-import sys
 import boto3
 import json
+from requests_aws4auth import AWS4Auth
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from langchain.embeddings import BedrockEmbeddings
 
-KENDRA_INDEX = 'b892de24-c1cd-47d2-afec-5ba905065502'
+
+### configs
+REGION_NAME = 'us-east-1'
+KENDRA_INDEX = 'b52d1029-70a1-4e81-8cd7-2082e5dc0e9b'
+AOSS_INDEX_NAME = 'aws_index'
+AOSS_VECTOR_FIELD = 'vectors'
+AOSS_HOST = '042wcys1zj5zx51an9u1.us-east-1.aoss.amazonaws.com'
+AOSS_SERVICE = 'aoss'
+
+### Models
 TEXT_GENERATION_MODEL_ENDPOINT_NAME = 'jumpstart-dft-hf-llm-falcon-7b-instruct-bf16'
-AI_ICON = "../images/logo.png"
 anthropic_model = 'anthropic.claude-v1'
+titan_embeddings = 'amazon.titan-embed-g1-text-02'
 
+### clients
 sagemaker_runtime_client = boto3.client('runtime.sagemaker')
 kendra_client = boto3.client('kendra')
 bedrock_runtime = boto3.client('bedrock-runtime')
+embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-g1-text-02", client=bedrock_runtime)
 
+### Streamlit code
+AI_ICON = "../images/logo.png"
 header = f"An AI App powered by Amazon Kendra and Generative AI!"
 st.write(f"<h3 class='main-header'>{header}</h3>", unsafe_allow_html=True)
 
+col1, col2 = st.columns(2)
+
+with col1:
+    model = st.selectbox("Select Model to use:", ["Sagemaker JumpStart", "Bedrock"])
+with col2:
+    kbase = st.selectbox("Select Model to use:", ["Kendra", "OpenSearch"])
+    
+query = st.text_input("You are talking to an AI, ask any question.", key="input")
+
+### Functions to read query data from knowledge base
 def get_kendra_results(query):
     result = ''
     context = []
@@ -40,13 +64,56 @@ def get_kendra_results(query):
     
     return result
 
-st.markdown('---')
-model = st.selectbox("Select Model to use:", ["Sagemaker JumpStart", "Bedrock"])
-query = st.text_input("You are talking to an AI, ask any question.", key="input")
+def get_opensearch_results(query):
+    
+    credentials = boto3.Session().get_credentials()
 
+    awsauth = AWS4Auth(credentials.access_key, credentials.secret_key,
+                   REGION_NAME, AOSS_SERVICE, session_token=credentials.token)
+    
+    aoss_client = OpenSearch(
+        hosts=[{'host': AOSS_HOST, 'port': 443}],
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        ssl_assert_hostname = False,
+        ssl_show_warn = False,
+        connection_class=RequestsHttpConnection,
+        timeout=300
+    )
+    
+    query_embedding = embeddings.embed_query(query)
 
+    query_qna = {
+        "size": 3,
+        "query": {
+            "knn": {
+            "vectors": {
+                "vector": query_embedding,
+                "k": 3
+                }
+            }
+        }
+    }
+
+    # OpenSearch API call
+    relevant_documents = aoss_client.search(
+        body = query_qna,
+        index = AOSS_INDEX_NAME
+    )
+    
+    context = ""
+    for r in relevant_documents['hits']['hits']:
+        s = r['_source']
+        context += f"{s['text']}\n"
+    return context
+
+### Execution Code 
 if query:
-    context = get_kendra_results(query)
+    if kbase == "Kendra":
+        context = get_kendra_results(query)
+    elif kbase == "OpenSearch":
+        context = get_opensearch_results(query)
 
     if model == "Sagemaker Jumpstart":
         template = """

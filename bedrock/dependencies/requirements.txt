@@ -1,0 +1,8 @@
+requests_aws4auth
+opensearch-py
+langchain
+faiss-cpu==1.7.4
+PyYAML
+pypdf
+streamlit
+PyPDF2
